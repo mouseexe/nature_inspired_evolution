@@ -16,6 +16,7 @@ market1 = Market(0.45, 2000000)
 market2 = Market(0.25, 30000000)
 market3 = Market(0.2, 20000000)
 
+# cost method from slides
 def cost(x, kwhPerPlant, costPerPlant, maxPlants):
   
   if x <= 0:
@@ -29,6 +30,7 @@ def cost(x, kwhPerPlant, costPerPlant, maxPlants):
   return plantsNeeded * costPerPlant
 
 
+# demand method from slides
 def demand(price, maxPrice, maxDemand):
 
   if price > maxPrice:
@@ -42,6 +44,7 @@ def demand(price, maxPrice, maxDemand):
   return demand
 
 
+# profit calculation
 def profit(solution):
   (e1, e2, e3, s1, s2, s3, p1, p2, p3) = solution
 
@@ -64,11 +67,13 @@ def profit(solution):
   return int(totalProfit)
 
 
+# remove extra decimals from an individual solution
 def cleanSolution(solution):
   cleaned = tuple(int(solution[i]*100)/100 if i > 5 else int(solution[i]) for i in range(len(solution)))
   return cleaned
 
 
+# random initialization, with a few restrictions to ensure solutions are feasible
 def initialization(p):
   maxEnergy1 = plant1.kwhPerPlant * plant1.maxPlants
   maxEnergy2 = plant2.kwhPerPlant * plant2.maxPlants
@@ -92,6 +97,7 @@ def initialization(p):
   return solutions
 
 
+# basic donor generation, k = 1 and using best solution as a base
 def generateDonor(solutions, best, p):
   vectors = r.sample(range(0, len(solutions)), 2)
   base = best
@@ -100,11 +106,13 @@ def generateDonor(solutions, best, p):
   return cleanSolution(donor)
 
 
+# basic trial generation, using a binomial crossover
 def generateTrial(current, donor, p):
   donorIdx = r.randint(0, len(current))
   return tuple(donor[i] if r.random() < p.crossoverRate or i == donorIdx else current[i] for i in range(len(current)))
 
 
+# basic selection, add new solution if it is better than old
 def selection(current, trial):
   if profit(current) > profit(trial):
     return current
