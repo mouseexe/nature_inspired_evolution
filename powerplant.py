@@ -3,18 +3,23 @@ from collections import namedtuple
 import random as r
 import numpy
 
+# Define a parameters tuple
 Parameters = namedtuple('Parameters', 'popSize, scaleFactor, crossoverRate terminationCondition')
 p = Parameters(500, 0.4, 0.5, 35)
 
+# Define a plant tuple and array of plants
 Plant = namedtuple('Plant', 'kwhPerPlant costPerPlant maxPlants')
 plant1 = Plant(50000, 10000, 100)
 plant2 = Plant(600000, 80000, 50)
 plant3 = Plant(4000000, 400000, 3)
+plants = [plant1, plant2, plant3]
 
+# Define a market tuple and array of markets
 Market = namedtuple('Market', 'maxPrice maxDemand')
 market1 = Market(0.45, 2000000)
 market2 = Market(0.25, 30000000)
 market3 = Market(0.2, 20000000)
+markets = [market1, market2, market3]
 
 # cost method from slides
 def cost(x, kwhPerPlant, costPerPlant, maxPlants):
@@ -44,108 +49,163 @@ def demand(price, maxPrice, maxDemand):
   return demand
 
 
-# profit calculation
-def profit(solution):
-  (e1, e2, e3, s1, s2, s3, p1, p2, p3) = solution
+# Calculate profit of an individual solution
+def profit(s):
 
+  # Sum the revenue from each market
   revenue = 0
-  revenue += min(demand(p1, market1.maxPrice, market1.maxDemand), s1) * p1
-  revenue += min(demand(p2, market2.maxPrice, market2.maxDemand), s2) * p2
-  revenue += min(demand(p3, market3.maxPrice, market3.maxDemand), s3) * p3
+  for i in range(len(markets)):
+    revenue += min(demand(s[i+6], markets[i].maxPrice, markets[i].maxDemand), s[i+3]) * s[i+6]
 
+  # Sum the production cost from each plant
   productionCost = 0
-  productionCost += cost(e1, plant1.kwhPerPlant, plant1.costPerPlant, plant1.maxPlants)
-  productionCost += cost(e2, plant2.kwhPerPlant, plant2.costPerPlant, plant2.maxPlants)
-  productionCost += cost(e3, plant3.kwhPerPlant, plant3.costPerPlant, plant3.maxPlants)
+  for i in range(len(plants)):
+    productionCost += cost(s[i], plants[i].kwhPerPlant, plants[i].costPerPlant, plants[i].maxPlants)
 
-  purchasingCost = max(((s1 + s2 + s3) - (e1 + e2 + e3)), 0) * 0.6
+  # Calculate how much energy must be purchased from other companies
+  purchasingCost = max(((s[3] + s[4] + s[5]) - (s[0] + s[1] + s[2])), 0) * 0.6
 
+  # Calculate and return profit
   totalCost = productionCost + purchasingCost
-
   totalProfit = revenue - totalCost
-
   return int(totalProfit)
 
 
-# remove extra decimals from an individual solution
+# Remove extra decimals from an individual solution
 def cleanSolution(solution):
+
+  # Convert energy values to ints to remove decimals
+  # Multiply prices by 100, then convert to int before dividing by 100 to round to two decimal places
   cleaned = tuple(int(solution[i]*100)/100 if i > 5 else int(solution[i]) for i in range(len(solution)))
   return cleaned
 
 
 # random initialization, with a few restrictions to ensure solutions are feasible
 def initialization(p):
-  maxEnergy1 = plant1.kwhPerPlant * plant1.maxPlants
-  maxEnergy2 = plant2.kwhPerPlant * plant2.maxPlants
-  maxEnergy3 = plant3.kwhPerPlant * plant3.maxPlants
 
+  # Calculate max amount of energy from each plant type
+  maxEnergies = [plant.kwhPerPlant * plant.maxPlants for plant in plants]
+
+  # Generate a full population of solutions
   solutions = []
   for i in range(p.popSize):
-    e1 = r.randint(0, maxEnergy1)
-    e2 = r.randint(0, maxEnergy2)
-    e3 = r.randint(0, maxEnergy3)
+    # Generate energy production between 0 and max energy production
+    produced = [r.randint(0, maxEnergy) for maxEnergy in maxEnergies]
 
-    p1 = r.randint(0, market1.maxPrice * 100) / 100
-    p2 = r.randint(0, market2.maxPrice * 100) / 100
-    p3 = r.randint(0, market3.maxPrice * 100) / 100
+    # Generate sale prices between 0 and max market price
+    price = [r.randint(0, market.maxPrice * 100) / 100 for market in markets]
 
-    s1 = int(market1.maxDemand - p1**2 * market1.maxDemand / market1.maxPrice**2)
-    s2 = int(market2.maxDemand - p2**2 * market2.maxDemand / market2.maxPrice**2)
-    s3 = int(market3.maxDemand - p3**2 * market3.maxDemand / market3.maxPrice**2)
+    # Generate sale amount between 0 and max market demand
+    sold = [r.randint(0, int(markets[i].maxDemand - price[i]**2 * markets[i].maxDemand / markets[i].maxPrice**2)) for i in range(len(markets))]
 
-    solutions.append((e1, e2, e3, s1, s2, s3, p1, p2, p3))
+    # Add solution to solutions array
+    solutions.append((produced[0], produced[1], produced[2], sold[0], sold[1], sold[2], price[0], price[1], price[2]))
   return solutions
 
 
-# basic donor generation, k = 1 and using best solution as a base
+# Basic donor generation, k = 1 and using best solution as a base
 def generateDonor(solutions, best, p):
+
+  # Retrieve two distinct random solutions
   vectors = r.sample(range(0, len(solutions)), 2)
+
+  # Use best for base vector
   base = best
+
+  # Subtract the two random vectors, then multiply by the scale factor
   shift = tuple(x*p.scaleFactor for x in numpy.subtract(solutions[vectors[0]], solutions[vectors[1]]))
+
+  # Add shift vector to donor vector
   donor = tuple(numpy.add(base, shift))
   return cleanSolution(donor)
 
 
-# basic trial generation, using a binomial crossover
+# Basic trial generation, using a binomial crossover
 def generateTrial(current, donor, p):
+
+  # Define a value to be guaranteed to be taken from donor
   donorIdx = r.randint(0, len(current))
+
+  # Take from donor if r[0,1] is below crossover rate, otherwise take from current vector
   return tuple(donor[i] if r.random() < p.crossoverRate or i == donorIdx else current[i] for i in range(len(current)))
 
 
-# basic selection, add new solution if it is better than old
+# Basic selection, add new solution if it is better than old
 def selection(current, trial):
+
+  # If current vector has a better profit than trial, return current
   if profit(current) > profit(trial):
     return current
   return trial
 
 
 def main():
+
+  # Initialize solutions with parameters
   solutions = initialization(p)
+
+  # Count iterations without improved best solution
   noImprovement = 0
+
+  # Count total runs
+  runCount = 0
+
+  # Set a baseline best solution
   globalBest = profit(solutions[0])
+
+  # Loop until we reach enough iterations without any improvement
   while noImprovement < p.terminationCondition:
     
+    # Increment total runs for statistics
+    runCount += 1
+
+    # Output status every 50 iterations
+    if runCount % 50 == 0:
+      print('Iteration:', runCount)
+      print('Current best profit:', globalBest)
+
+    # Set local best solution in current pool
     best = profit(solutions[0])
     bestSolution = solutions[0]
+
+    # Check for better best solution in current pool
     for solution in solutions:
       if profit(solution) > best:
         best = profit(solution)
         bestSolution = solution
 
+    # Compare local best to global best
     if best == globalBest:
       noImprovement += 1
     else:
       noImprovement = 0
       globalBest = best
 
+    # Create new pool
     newSolutions = []
+
+    # Operate on each solution in pool
     for solution in solutions:
+      # Generate donor vector with current best solution
       donor = generateDonor(solutions, bestSolution, p)
+
+      # Generate trial with donor vector
       trial = generateTrial(solution, donor, p)
+
+      # Add better solution to new pool
       newSolutions.append(selection(solution, trial))
+
+    # Replace old pool with new pool
     solutions = newSolutions
-  print(best)
-  print(bestSolution)
+
+  # Add end of iteration, display evalutation
+  print('Algorithm complete!')
+  print('Total iterations:', runCount)
+  print('Total profit:', best)
+  print('Best solution:', bestSolution)
+  print('Population size:', p.popSize)
+  print('Scale factor:', p.scaleFactor)
+  print('Crossover rate:', p.crossoverRate)
 
 
 main()
