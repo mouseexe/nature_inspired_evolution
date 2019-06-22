@@ -5,7 +5,7 @@ import numpy
 
 # Define a parameters tuple
 Parameters = namedtuple('Parameters', 'popSize, scaleFactor, crossoverRate terminationCondition')
-p = Parameters(500, 0.4, 0.5, 35)
+p = Parameters(500, 1, 0.5, 35)
 
 # Define a plant tuple and array of plants
 Plant = namedtuple('Plant', 'kwhPerPlant costPerPlant maxPlants')
@@ -77,6 +77,17 @@ def cleanSolution(solution):
   # Convert energy values to ints to remove decimals
   # Multiply prices by 100, then convert to int before dividing by 100 to round to two decimal places
   cleaned = tuple(int(solution[i]*100)/100 if i > 5 else int(solution[i]) for i in range(len(solution)))
+
+  # Negative values should be converted to 0 to avoid overflows
+  cleaned = tuple(0 if x < 0 else x for x in cleaned)
+
+  # Values above max should be reduced to max values
+  cleaned = tuple(
+      plants[i].kwhPerPlant * plants[i].maxPlants if i < 3 and plants[i].kwhPerPlant * plants[i].maxPlants < cleaned[i] 
+      else markets[i%3].maxDemand if i >= 3 and i < 6 and markets[i%3].maxDemand < cleaned[i] 
+      else markets[i%3].maxPrice if i >= 6 and markets[i%3].maxPrice < cleaned[i] 
+      else cleaned[i] for i in range(len(cleaned)))
+
   return cleaned
 
 
