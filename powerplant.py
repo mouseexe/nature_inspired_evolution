@@ -22,9 +22,9 @@ plants = [plant1, plant2, plant3]
 
 # Define a market tuple and array of markets
 Market = namedtuple('Market', 'maxPrice maxDemand')
-market1 = Market(0.45, 2000000)
-market2 = Market(0.25, 30000000)
-market3 = Market(0.2, 20000000)
+market1 = Market(0.45, 1000000)
+market2 = Market(0.25, 20000000)
+market3 = Market(0.2, 30000000)
 markets = [market1, market2, market3]
 ########################################
 
@@ -112,7 +112,7 @@ def initialization(p):
     produced = [r.randint(0, maxEnergy) for maxEnergy in maxEnergies]
 
     # Generate sale prices between 0 and max market price
-    price = [r.randint(0, market.maxPrice * 100) / 100 for market in markets]
+    price = [r.randint(0, int(market.maxPrice * 100)) / 100 for market in markets]
 
     # Generate sale amount between 0 and max market demand
     sold = [r.randint(0, int(markets[i].maxDemand - price[i]**2 * markets[i].maxDemand / markets[i].maxPrice**2)) for i in range(len(markets))]
