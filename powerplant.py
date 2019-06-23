@@ -2,10 +2,16 @@ import math
 from collections import namedtuple
 import random as r
 import numpy
+import csv
 
 # Define a parameters tuple
 Parameters = namedtuple('Parameters', 'popSize, scaleFactor, crossoverRate terminationCondition')
-p = Parameters(500, 1, 0.5, 35)
+
+# Change parameters here
+########################################
+globalCost = 0.6
+globalPop = 500
+outputFile = 'results.csv'
 
 # Define a plant tuple and array of plants
 Plant = namedtuple('Plant', 'kwhPerPlant costPerPlant maxPlants')
@@ -20,6 +26,8 @@ market1 = Market(0.45, 2000000)
 market2 = Market(0.25, 30000000)
 market3 = Market(0.2, 20000000)
 markets = [market1, market2, market3]
+########################################
+
 
 # cost method from slides
 def cost(x, kwhPerPlant, costPerPlant, maxPlants):
@@ -63,7 +71,7 @@ def profit(s):
     productionCost += cost(s[i], plants[i].kwhPerPlant, plants[i].costPerPlant, plants[i].maxPlants)
 
   # Calculate how much energy must be purchased from other companies
-  purchasingCost = max(((s[3] + s[4] + s[5]) - (s[0] + s[1] + s[2])), 0) * 0.6
+  purchasingCost = max(((s[3] + s[4] + s[5]) - (s[0] + s[1] + s[2])), 0) * globalCost
 
   # Calculate and return profit
   totalCost = productionCost + purchasingCost
@@ -150,7 +158,7 @@ def selection(current, trial):
   return trial
 
 
-def main():
+def main(p):
 
   # Initialize solutions with parameters
   solutions = initialization(p)
@@ -171,9 +179,9 @@ def main():
     runCount += 1
 
     # Output status every 50 iterations
-    if runCount % 50 == 0:
-      print('Iteration:', runCount)
-      print('Current best profit:', globalBest)
+    #if runCount % 50 == 0:
+    #  print('Iteration:', runCount)
+    #  print('Current best profit:', globalBest)
 
     # Set local best solution in current pool
     best = profit(solutions[0])
@@ -209,14 +217,28 @@ def main():
     # Replace old pool with new pool
     solutions = newSolutions
 
-  # Add end of iteration, display evalutation
-  print('Algorithm complete!')
-  print('Total iterations:', runCount)
-  print('Total profit:', best)
-  print('Best solution:', bestSolution)
-  print('Population size:', p.popSize)
-  print('Scale factor:', p.scaleFactor)
-  print('Crossover rate:', p.crossoverRate)
+  # Add end of iteration, return evalutation
+  return [p.popSize, p.scaleFactor, p.crossoverRate, runCount, best, bestSolution]
+  #print('Algorithm complete!')
+  #print('Total iterations:', runCount)
+  #print('Total profit:', best)
+  #print('Best solution:', bestSolution)
+  #print('Population size:', p.popSize)
+  #print('Scale factor:', p.scaleFactor)
+  #print('Crossover rate:', p.crossoverRate)
 
 
-main()
+with open(outputFile, 'a') as csvFile:
+  writer = csv.writer(csvFile)
+  writer.writerow(['Population Size', 'Scale Factor', 'Crossover Rate', 'Total Iterations', 'Total Profit', 'Solution'])
+
+  crossover = .25
+  while crossover <= .75:
+    scale = 0.4
+    while scale <= 1:
+      p = Parameters(globalPop, scale, crossover, 35)
+      for i in range(3):
+        writer.writerow(main(p))
+      scale = (int(scale * 10) + 1)/10
+    crossover += .25
+csvFile.close()
