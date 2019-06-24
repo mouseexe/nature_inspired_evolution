@@ -10,8 +10,12 @@ Parameters = namedtuple('Parameters', 'popSize, scaleFactor, crossoverRate termi
 # Change parameters here
 ########################################
 globalCost = 0.6
-globalPop = 500
 outputFile = 'results.csv'
+
+populations = [50, 100, 500, 1000, 2500]
+scaleFactors = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+crossoverRates = [.25, .5, .75]
+terminationCondition = 35
 
 # Define a plant tuple and array of plants
 Plant = namedtuple('Plant', 'kwhPerPlant costPerPlant maxPlants')
@@ -232,13 +236,10 @@ with open(outputFile, 'a') as csvFile:
   writer = csv.writer(csvFile)
   writer.writerow(['Population Size', 'Scale Factor', 'Crossover Rate', 'Total Iterations', 'Total Profit', 'Solution'])
 
-  crossover = .25
-  while crossover <= .75:
-    scale = 0.4
-    while scale <= 1:
-      p = Parameters(globalPop, scale, crossover, 35)
-      for i in range(3):
-        writer.writerow(main(p))
-      scale = (int(scale * 10) + 1)/10
-    crossover += .25
+  for population in populations:
+    for scaleFactor in scaleFactors:
+      for crossoverRate in crossoverRates:
+        p = Parameters(population, scaleFactor, crossoverRate, terminationCondition)
+        for i in range(3):
+          writer.writerow(main(p))
 csvFile.close()
