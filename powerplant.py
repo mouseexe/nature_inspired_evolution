@@ -15,6 +15,7 @@ outputFile = 'results.csv'
 populations = [50, 100, 500, 1000, 2500]
 scaleFactors = [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 crossoverRates = [.25, .5, .75]
+repeatParams = 3
 terminationCondition = 35
 
 # Define a plant tuple and array of plants
@@ -240,6 +241,6 @@ with open(outputFile, 'a') as csvFile:
     for scaleFactor in scaleFactors:
       for crossoverRate in crossoverRates:
         p = Parameters(population, scaleFactor, crossoverRate, terminationCondition)
-        for i in range(3):
+        for i in range(repeatParams):
           writer.writerow(main(p))
 csvFile.close()
