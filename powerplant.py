@@ -4,12 +4,13 @@ import random as r
 import numpy
 import csv
 
-# Define a parameters tuple
+# Define named tuples
 Parameters = namedtuple('Parameters', 'popSize, scaleFactor, crossoverRate terminationCondition')
+Plant = namedtuple('Plant', 'kwhPerPlant costPerPlant maxPlants')
+Market = namedtuple('Market', 'maxPrice maxDemand')
 
 # Change parameters here
 ########################################
-globalCost = 0.6
 outputFile = 'results.csv'
 
 populations = [50, 100, 500, 1000, 2500]
@@ -18,20 +19,20 @@ crossoverRates = [.25, .5, .75]
 repeatParams = 3
 terminationCondition = 35
 
-# Define a plant tuple and array of plants
-Plant = namedtuple('Plant', 'kwhPerPlant costPerPlant maxPlants')
 plant1 = Plant(50000, 10000, 100)
 plant2 = Plant(600000, 80000, 50)
 plant3 = Plant(4000000, 400000, 3)
-plants = [plant1, plant2, plant3]
 
-# Define a market tuple and array of markets
-Market = namedtuple('Market', 'maxPrice maxDemand')
 market1 = Market(0.45, 1000000)
 market2 = Market(0.25, 20000000)
 market3 = Market(0.2, 30000000)
-markets = [market1, market2, market3]
+
+globalCost = 0.6
 ########################################
+
+# Create plant and market arrays
+plants = [plant1, plant2, plant3]
+markets = [market1, market2, market3]
 
 
 # cost method from slides
@@ -222,16 +223,27 @@ def runAlgorithm(p):
 
 
 def main():
+
+  # Open CSV file
   with open(outputFile, 'a') as csvFile:
     writer = csv.writer(csvFile)
+
+    # Write header row
     writer.writerow(['Population Size', 'Scale Factor', 'Crossover Rate', 'Total Iterations', 'Total Profit', 'Solution'])
 
+    # Loop over all wanted parameter values
     for population in populations:
       for scaleFactor in scaleFactors:
         for crossoverRate in crossoverRates:
+
+          # Set parameters for problem
           p = Parameters(population, scaleFactor, crossoverRate, terminationCondition)
+
+          # Repeat algorithm desired number of times
           for i in range(repeatParams):
             writer.writerow(runAlgorithm(p))
+  
+  # Clean up CSV file
   csvFile.close()
 
 
