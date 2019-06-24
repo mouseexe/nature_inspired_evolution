@@ -163,7 +163,7 @@ def selection(current, trial):
   return trial
 
 
-def main(p):
+def runAlgorithm(p):
 
   # Initialize solutions with parameters
   solutions = initialization(p)
@@ -182,11 +182,6 @@ def main(p):
     
     # Increment total runs for statistics
     runCount += 1
-
-    # Output status every 50 iterations
-    #if runCount % 50 == 0:
-    #  print('Iteration:', runCount)
-    #  print('Current best profit:', globalBest)
 
     # Set local best solution in current pool
     best = profit(solutions[0])
@@ -224,23 +219,20 @@ def main(p):
 
   # Add end of iteration, return evalutation
   return [p.popSize, p.scaleFactor, p.crossoverRate, runCount, best, bestSolution]
-  #print('Algorithm complete!')
-  #print('Total iterations:', runCount)
-  #print('Total profit:', best)
-  #print('Best solution:', bestSolution)
-  #print('Population size:', p.popSize)
-  #print('Scale factor:', p.scaleFactor)
-  #print('Crossover rate:', p.crossoverRate)
 
 
-with open(outputFile, 'a') as csvFile:
-  writer = csv.writer(csvFile)
-  writer.writerow(['Population Size', 'Scale Factor', 'Crossover Rate', 'Total Iterations', 'Total Profit', 'Solution'])
+def main():
+  with open(outputFile, 'a') as csvFile:
+    writer = csv.writer(csvFile)
+    writer.writerow(['Population Size', 'Scale Factor', 'Crossover Rate', 'Total Iterations', 'Total Profit', 'Solution'])
 
-  for population in populations:
-    for scaleFactor in scaleFactors:
-      for crossoverRate in crossoverRates:
-        p = Parameters(population, scaleFactor, crossoverRate, terminationCondition)
-        for i in range(repeatParams):
-          writer.writerow(main(p))
-csvFile.close()
+    for population in populations:
+      for scaleFactor in scaleFactors:
+        for crossoverRate in crossoverRates:
+          p = Parameters(population, scaleFactor, crossoverRate, terminationCondition)
+          for i in range(repeatParams):
+            writer.writerow(runAlgorithm(p))
+  csvFile.close()
+
+
+main()
